@@ -704,3 +704,22 @@ export const getMyChats = async (req, res) => {
     return error(res, err.message, err.status || 500);
   }
 };
+
+
+export const getRidePastSuggesstion = async (req, res) => {
+  try {
+    const { date } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const data = await locationService.getRidePastSuggesstion(req.user.sub, date, page, limit);
+
+    return success(res, data, "Ride history fetched successfully");
+  } catch (err) {
+    logger.error("Get ride history error:", {
+      message: err.message,
+      stack: err.stack,
+    });
+    return error(res, err.message, err.status || 500);
+  }
+};

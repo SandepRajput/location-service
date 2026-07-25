@@ -30,6 +30,7 @@ import {
   withdrawInviteByDriver,
   cancelRiderRide,
   riderRespondToInvite,
+  getRidePastSuggesstion,
 } from "../controllers/location.controller.js";
 
 const router = Router();
@@ -65,6 +66,8 @@ router.patch(
   respondToRequest,
 );
 router.patch("/ride/:rideId/respond-invite", protect, riderRespondToInvite);
+
+router.get("/ride/past-suggestedrides", protect, getRidePastSuggesstion)
 
 // ─── Ride Details & Tracking
 router.get("/ride/:rideId", protect, getRide);

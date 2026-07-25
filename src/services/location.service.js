@@ -808,3 +808,57 @@ export const getInterestedUsersForRide = async (rideId, userId) => {
 
   return { interestedUsers, count: interestedUsers.length };
 };
+
+export const getRidePastSuggesstion = async (userId, date, page = 1, limit = 20) => {
+  const query = {
+    $or: [
+      { "offeredBy.userId": userId },
+      { riders: { $elemMatch: { userId, status: "accepted" } } },
+    ],
+    // ── Point 1: sirf actual history — future/upcoming rides exclude ──
+    status: { $in: ["completed", "expired", "cancelled"] },
+  };
+
+  // ── Point 2: date validation ──
+  if (date) {
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      const err = new Error("Invalid date format");
+      err.status = 400;
+      throw err;
+    }
+
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    query.departureTime = { $gte: startOfDay, $lte: endOfDay };
+  }
+
+  // ── Point 3: pagination ──
+  const skip = (page - 1) * limit;
+
+  const rides = await Ride.find(query)
+    // ── Point 4: projection — sirf zaroori fields ──
+    .select(
+      "offeredBy from to departureTime availableSeats pricePerSeat riders status startedAt completedAt",
+    )
+    .sort({ departureTime: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await Ride.countDocuments(query);
+
+  return {
+    rides,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page < Math.ceil(total / limit),
+    },
+  };
+};

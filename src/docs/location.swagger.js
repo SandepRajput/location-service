@@ -887,6 +887,109 @@ export const locationSwaggerDocs = {
     },
   },
 
+  "/api/location/ride/past-suggestedrides": {
+    get: {
+      summary: "Get past ride suggestions (offered or joined) for home page",
+      tags: ["Ride"],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "date",
+          in: "query",
+          required: false,
+          schema: { type: "string", example: "2026-07-20" },
+          description: "Filter by specific date (YYYY-MM-DD)",
+        },
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", example: 1 },
+        },
+        {
+          name: "limit",
+          in: "query",
+          required: false,
+          schema: { type: "integer", example: 20 },
+        },
+      ],
+      responses: {
+        200: {
+          description: "Ride history fetched successfully",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Ride history fetched successfully",
+                  },
+                  data: {
+                    type: "object",
+                    properties: {
+                      rides: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            _id: {
+                              type: "string",
+                              example: "6a34aa15f585c7dfc43336a4",
+                            },
+                            offeredBy: {
+                              type: "object",
+                              properties: {
+                                userId: { type: "string" },
+                                username: { type: "string" },
+                              },
+                            },
+                            from: {
+                              type: "object",
+                              example: { address: "Sector 18, Noida" },
+                            },
+                            to: {
+                              type: "object",
+                              example: { address: "Connaught Place, Delhi" },
+                            },
+                            departureTime: {
+                              type: "string",
+                              example: "2026-07-20T09:00:00.000Z",
+                            },
+                            availableSeats: { type: "integer", example: 3 },
+                            pricePerSeat: { type: "number", example: 150 },
+                            status: { type: "string", example: "completed" },
+                            riders: {
+                              type: "array",
+                              items: { type: "object" },
+                            },
+                          },
+                        },
+                      },
+                      pagination: {
+                        type: "object",
+                        properties: {
+                          page: { type: "integer", example: 1 },
+                          limit: { type: "integer", example: 20 },
+                          total: { type: "integer", example: 45 },
+                          totalPages: { type: "integer", example: 3 },
+                          hasMore: { type: "boolean", example: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Invalid date format" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+
   "/api/location/ride/{rideId}/respond-invite": {
     patch: {
       summary: "Rider responds to driver's invite — accept or reject",
