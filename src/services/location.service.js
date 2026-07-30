@@ -862,3 +862,34 @@ export const getRidePastSuggesstion = async (userId, date, page = 1, limit = 20)
     },
   };
 };
+
+export const getNearbyRidesOrSearches = async (type) => {
+  if (type === "offer") {
+    const rides = await Ride.find({
+      status: { $in: ["upcoming", "full"] },
+      departureTime: { $gte: new Date() },
+    })
+      .select(
+        "offeredBy from to departureTime availableSeats pricePerSeat status",
+      )
+      .sort({ departureTime: 1 })
+      .lean();
+
+    return rides;
+  }
+
+  if (type === "search") {
+    const searches = await SearchRequest.find({
+      departureTime: { $gte: new Date() },
+    })
+      .select("userId username from to departureTime")
+      .sort({ departureTime: 1 })
+      .lean();
+
+    return searches;
+  }
+
+  const err = new Error("Invalid type — must be 'offer' or 'search'");
+  err.status = 400;
+  throw err;
+};

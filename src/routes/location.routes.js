@@ -31,6 +31,7 @@ import {
   cancelRiderRide,
   riderRespondToInvite,
   getRidePastSuggesstion,
+  getNearbyRidesOrSearches,
 } from "../controllers/location.controller.js";
 
 const router = Router();
@@ -42,6 +43,7 @@ router.get("/", protect, getUserLocations);
 // ─── Ride Offer & Search
 router.post("/ride/offer", protect, validate(offerRideSchema), offerRide);
 router.post("/ride/search", protect, validate(searchRideSchema), searchRides);
+router.get("/ride/nearby", protect, getNearbyRidesOrSearches);
 
 // ─── Rides of a User
 router.get("/ride/my-rides", protect, getMyRides);

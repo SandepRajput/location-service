@@ -533,6 +533,7 @@ export const cancelRide = async (req, res) => {
     return error(res, err.message, err.status || 500);
   }
 };
+
 // ─── Rider: Request Withdraw
 export const withdrawRequest = async (req, res) => {
   try {
@@ -717,6 +718,30 @@ export const getRidePastSuggesstion = async (req, res) => {
     return success(res, data, "Ride history fetched successfully");
   } catch (err) {
     logger.error("Get ride history error:", {
+      message: err.message,
+      stack: err.stack,
+    });
+    return error(res, err.message, err.status || 500);
+  }
+};
+
+export const getNearbyRidesOrSearches = async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    if (!type || !["offer", "search"].includes(type)) {
+      return error(res, "Query param 'type' must be 'offer' or 'search'", 400);
+    }
+
+    const data = await locationService.getNearbyRidesOrSearches(type);
+
+    return success(
+      res,
+      { [type === "offer" ? "rides" : "searches"]: data, count: data.length },
+      "Nearby data fetched successfully",
+    );
+  } catch (err) {
+    logger.error("Get nearby rides/searches error:", {
       message: err.message,
       stack: err.stack,
     });
