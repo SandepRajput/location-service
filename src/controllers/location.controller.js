@@ -61,6 +61,18 @@ export const offerRide = async (req, res) => {
           message: "A new ride matching your search is available!",
         });
       });
+
+      // ── Nearby feed watchers ko bhi notify karo
+      io.to("nearby_feed_watchers").emit("new_offer_posted", {
+        rideId: ride._id,
+        offeredBy: ride.offeredBy,
+        from: ride.from,
+        to: ride.to,
+        departureTime: ride.departureTime,
+        availableSeats: ride.availableSeats,
+        pricePerSeat: ride.pricePerSeat,
+        status: ride.status,
+      });
     }
 
     return success(
@@ -107,6 +119,16 @@ export const searchRides = async (req, res) => {
           },
           searchedAt: newSearchRequest.createdAt,
         });
+      });
+
+      // ── Nearby feed watchers ko bhi notify karo
+      io.to("nearby_feed_watchers").emit("new_search_posted", {
+        searchRequestId: newSearchRequest._id,
+        userId: req.user.sub,
+        username: req.user.fullName || req.user.username,
+        from: newSearchRequest.from,
+        to: newSearchRequest.to,
+        departureTime: newSearchRequest.departureTime,
       });
     }
 
@@ -706,14 +728,18 @@ export const getMyChats = async (req, res) => {
   }
 };
 
-
 export const getRidePastSuggesstion = async (req, res) => {
   try {
     const { date } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
-    const data = await locationService.getRidePastSuggesstion(req.user.sub, date, page, limit);
+    const data = await locationService.getRidePastSuggesstion(
+      req.user.sub,
+      date,
+      page,
+      limit,
+    );
 
     return success(res, data, "Ride history fetched successfully");
   } catch (err) {

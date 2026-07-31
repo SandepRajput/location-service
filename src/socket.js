@@ -136,6 +136,16 @@ const initSocket = (httpServer) => {
       socket.searchCriteria = null;
     });
 
+    // ─── Nearby Feed — Watch all offers/searches (real-time)
+    socket.on("watch_nearby_feed", () => {
+      socket.join("nearby_feed_watchers");
+      logger.info(`${socket.user.username} watching nearby feed`);
+    });
+
+    socket.on("unwatch_nearby_feed", () => {
+      socket.leave("nearby_feed_watchers");
+    });
+
     // ─── Disconnect
     socket.on("disconnect", () => {
       logger.info(`User disconnected: ${socket.user.username}`);
