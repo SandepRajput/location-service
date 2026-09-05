@@ -3,6 +3,7 @@ import * as chatServiceClient from "../utils/chatServiceClient.js";
 import { success, error } from "../utils/response.js";
 import logger from "../utils/logger.js";
 import { createNotification } from "../utils/notification.js";
+import { getDisplayName } from "../utils/displayName.js";
 import {
   sendRideRequestEmail,
   sendRideAcceptedEmail,
@@ -95,7 +96,7 @@ export const searchRides = async (req, res) => {
     const { matched, newSearchRequest } = await locationService.searchRides({
       ...req.body,
       userId: req.user.sub,
-      username: req.user.fullName || req.user.username,
+      username: getDisplayName(req.user),
     });
 
     const io = req.app.get("io");
@@ -104,7 +105,7 @@ export const searchRides = async (req, res) => {
         io.to(`watching:${ride._id}`).emit("new_interested_user", {
           searchRequestId: newSearchRequest._id,
           userId: req.user.sub,
-          username: req.user.fullName || req.user.username,
+          username: getDisplayName(req.user),
           searchedRoute: {
             from: newSearchRequest.from.address,
             to: newSearchRequest.to.address,
@@ -125,7 +126,7 @@ export const searchRides = async (req, res) => {
       io.to("nearby_feed_watchers").emit("new_search_posted", {
         searchRequestId: newSearchRequest._id,
         userId: req.user.sub,
-        username: req.user.fullName || req.user.username,
+        username: getDisplayName(req.user),
         from: newSearchRequest.from,
         to: newSearchRequest.to,
         departureTime: newSearchRequest.departureTime,
@@ -166,7 +167,7 @@ export const requestRide = async (req, res) => {
         {
           rideId: ride._id.toString(),
           riderId: req.user.sub,
-          riderName: rider.username || req.user.fullName || req.user.username,
+          riderName: rider.username || getDisplayName(req.user),
           role: "passenger",
           fromLocation: rider.pickupLocation?.address || req.body.pickupAddress,
           toLocation: ride.to?.address,
@@ -187,14 +188,14 @@ export const requestRide = async (req, res) => {
       userId: ride.offeredBy.userId,
       type: "ride_request_received",
       title: "New Ride Request",
-      message: `${req.user.fullName || req.user.username} wants to join your ride`,
+      message: `${getDisplayName(req.user)} wants to join your ride`,
       data: { rideId: ride._id, riderId: req.user.sub },
     });
 
     // email notification
     await sendRideRequestEmail(
       ride.offeredBy.userId,
-      req.user.fullName || req.user.username,
+      getDisplayName(req.user),
     );
 
     return success(res, { ride }, "Ride request sent successfully");
@@ -226,7 +227,7 @@ export const inviteRider = async (req, res) => {
       io.to(`user:${toUserId}`).emit("ride_invite_received", {
         rideId,
         fromUserId: req.user.sub,
-        fromUsername: req.user.fullName || req.user.username,
+        fromUsername: getDisplayName(req.user),
         message: "You have been invited to join this ride",
       });
     }
@@ -235,7 +236,7 @@ export const inviteRider = async (req, res) => {
       userId: toUserId,
       type: "ride_invite_received",
       title: "Ride Invite Received",
-      message: `${req.user.fullName || req.user.username} invited you to join a ride`,
+      message: `${getDisplayName(req.user)} invited you to join a ride`,
       data: { rideId, fromUserId: req.user.sub },
     });
 
@@ -273,7 +274,7 @@ export const withdrawInviteByDriver = async (req, res) => {
       userId: toUserId,
       type: "ride_invite_withdrawn",
       title: "Invite Withdrawn",
-      message: `${req.user.fullName || req.user.username} withdrew your ride invite`,
+      message: `${getDisplayName(req.user)} withdrew your ride invite`,
       data: { rideId },
     });
 
@@ -301,7 +302,7 @@ export const cancelRiderRide = async (req, res) => {
         // ← sirf driver ko
         rideId,
         riderId: req.user.sub,
-        riderName: req.user.fullName || req.user.username,
+        riderName: getDisplayName(req.user),
         availableSeats: ride.availableSeats,
         message: "A rider has left the ride",
       });
@@ -311,7 +312,7 @@ export const cancelRiderRide = async (req, res) => {
       userId: ride.offeredBy.userId,
       type: "rider_exited",
       title: "Rider Left",
-      message: `${req.user.fullName || req.user.username} has left your ride`,
+      message: `${getDisplayName(req.user)} has left your ride`,
       data: { rideId, availableSeats: ride.availableSeats },
     });
 
@@ -377,7 +378,7 @@ export const respondToRequest = async (req, res) => {
     );
 
     const io = req.app.get("io");
-    const driverName = req.user.fullName || req.user.username;
+    const driverName = getDisplayName(req.user);
 
     if (action === "accepted") {
       await chatServiceClient.postSystemMessage(
@@ -415,22 +416,22 @@ export const respondToRequest = async (req, res) => {
           : "Ride Request Rejected",
       message:
         action === "accepted"
-          ? `${req.user.fullName || req.user.username} accepted your ride request`
-          : `${req.user.fullName || req.user.username} rejected your ride request`,
-      data: { rideId, driverName: req.user.fullName || req.user.username },
+          ? `${getDisplayName(req.user)} accepted your ride request`
+          : `${getDisplayName(req.user)} rejected your ride request`,
+      data: { rideId, driverName: getDisplayName(req.user) },
     });
 
     // email notification
     if (action === "accepted") {
       await sendRideAcceptedEmail(
         riderId,
-        req.user.fullName || req.user.username,
+        getDisplayName(req.user),
         ride,
       );
     } else {
       await sendRideRejectedEmail(
         riderId,
-        req.user.fullName || req.user.username,
+        getDisplayName(req.user),
       );
     }
 
@@ -459,7 +460,7 @@ export const riderRespondToInvite = async (req, res) => {
     if (action === "accepted") {
       await chatServiceClient.postSystemMessage(
         rideId,
-        `${req.user.fullName || req.user.username} joined the ride`,
+        `${getDisplayName(req.user)} joined the ride`,
       );
     }
 
@@ -471,7 +472,7 @@ export const riderRespondToInvite = async (req, res) => {
         {
           rideId,
           riderId: req.user.sub,
-          riderName: req.user.fullName || req.user.username,
+          riderName: getDisplayName(req.user),
           message:
             action === "accepted"
               ? "Your invite has been accepted!"
@@ -486,8 +487,8 @@ export const riderRespondToInvite = async (req, res) => {
       title: action === "accepted" ? "Invite Accepted!" : "Invite Rejected",
       message:
         action === "accepted"
-          ? `${req.user.fullName || req.user.username} accepted your invite`
-          : `${req.user.fullName || req.user.username} rejected your invite`,
+          ? `${getDisplayName(req.user)} accepted your invite`
+          : `${getDisplayName(req.user)} rejected your invite`,
       data: { rideId },
     });
 
@@ -522,7 +523,7 @@ export const cancelRide = async (req, res) => {
       if (io) {
         io.to(`user:${r.userId}`).emit("ride_cancelled", {
           rideId,
-          driverName: req.user.fullName || req.user.username,
+          driverName: getDisplayName(req.user),
           from: ride.from.address,
           to: ride.to.address,
           message: "Your ride has been cancelled by the driver",
@@ -534,17 +535,17 @@ export const cancelRide = async (req, res) => {
         userId: r.userId,
         type: "ride_cancelled",
         title: "Ride Cancelled",
-        message: `${req.user.fullName || req.user.username} cancelled the ride`,
+        message: `${getDisplayName(req.user)} cancelled the ride`,
         data: { rideId, from: ride.from.address, to: ride.to.address },
       });
-    }
 
-    // email notification
-    await sendRideCancelledEmail(
-      r.userId,
-      req.user.fullName || req.user.username,
-      ride,
-    );
+      // email notification
+      await sendRideCancelledEmail(
+        r.userId,
+        getDisplayName(req.user),
+        ride,
+      );
+    }
 
     return success(res, { ride }, "Ride cancelled successfully");
   } catch (err) {
@@ -572,7 +573,7 @@ export const withdrawRequest = async (req, res) => {
         "ride_request_withdrawn",
         {
           userId: req.user.sub,
-          username: req.user.fullName || req.user.username,
+          username: getDisplayName(req.user),
           rideId,
           wasAccepted: riderStatus === "accepted",
           availableSeats: ride.availableSeats,
@@ -584,7 +585,7 @@ export const withdrawRequest = async (req, res) => {
       userId: ride.offeredBy.userId,
       type: "ride_request_withdrawn",
       title: "Request Withdrawn",
-      message: `${req.user.fullName || req.user.username} withdrew their ride request`,
+      message: `${getDisplayName(req.user)} withdrew their ride request`,
       data: { rideId, wasAccepted: riderStatus === "accepted" },
     });
 

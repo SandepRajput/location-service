@@ -49,7 +49,7 @@ export const offerRide = async (
   },
 ) => {
   const ride = await Ride.create({
-    offeredBy: { userId, username: fullName || username },
+    offeredBy: { userId, username: fullName || username || null },
     from: {
       address: fromAddress,
       city: fromCity,
@@ -140,7 +140,7 @@ export const searchRides = async ({
   // ── Step 4: Search ko save karo — taaki future me ride offer hone pe match ho sake ──
   const searchRequest = await SearchRequest.create({
     userId,
-    username,
+    username: username || null,
     from: {
       address: fromAddress,
       coordinates: { type: "Point", coordinates: [fromLng, fromLat] },
@@ -206,7 +206,7 @@ export const requestRide = async (
 
   ride.riders.push({
     userId,
-    username: fullName || username,
+    username: fullName || username || null,
     status: "pending",
     pickupLocation: {
       address: pickupAddress,
@@ -259,7 +259,7 @@ export const inviteRider = async (
 
   ride.riders.push({
     userId: toUserId,
-    username: toUsername,
+    username: toUsername || null,
     status: "invited",
     invitedBy: "owner",
   });
@@ -269,7 +269,11 @@ export const inviteRider = async (
 };
 
 // ─── Driver cancels/withdraws an invite (status update, no delete)
-export const withdrawInviteByDriver = async (rideId, driverUserId, toUserId) => {
+export const withdrawInviteByDriver = async (
+  rideId,
+  driverUserId,
+  toUserId,
+) => {
   const ride = await Ride.findById(rideId);
 
   if (!ride) {
@@ -284,7 +288,7 @@ export const withdrawInviteByDriver = async (rideId, driverUserId, toUserId) => 
   }
 
   const rider = ride.riders.find(
-    (r) => r.userId.toString() === toUserId && r.status === "invited"
+    (r) => r.userId.toString() === toUserId && r.status === "invited",
   );
 
   if (!rider) {
@@ -431,12 +435,12 @@ export const getMyChats = async (userId) => {
       participants: [
         {
           userId: ride.offeredBy.userId.toString(),
-          username: ride.offeredBy.username,
+          username: ride.offeredBy.username || null,
           role: "driver",
         },
         ...acceptedRiders.map((r) => ({
           userId: r.userId.toString(),
-          username: r.username,
+          username: r.username || null,
           role: "rider",
         })),
       ],
@@ -458,12 +462,12 @@ export const getMyChats = async (userId) => {
       participants: [
         {
           userId: ride.offeredBy.userId.toString(),
-          username: ride.offeredBy.username,
+          username: ride.offeredBy.username || null,
           role: "driver",
         },
         ...acceptedRiders.map((r) => ({
           userId: r.userId.toString(),
-          username: r.username,
+          username: r.username || null,
           role: "rider",
         })),
       ],
@@ -809,7 +813,12 @@ export const getInterestedUsersForRide = async (rideId, userId) => {
   return { interestedUsers, count: interestedUsers.length };
 };
 
-export const getRidePastSuggesstion = async (userId, date, page = 1, limit = 20) => {
+export const getRidePastSuggesstion = async (
+  userId,
+  date,
+  page = 1,
+  limit = 20,
+) => {
   const query = {
     $or: [
       { "offeredBy.userId": userId },

@@ -10,7 +10,7 @@ const searchRequestSchema = new mongoose.Schema(
     },
     username: {
       type: String,
-      required: true,
+      default: null,
     },
 
     // ─── Search criteria
